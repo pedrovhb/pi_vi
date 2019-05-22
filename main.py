@@ -3,7 +3,11 @@
 from flask import Flask, Response, jsonify, request
 import json
 import inspect
-import linuxcnc
+
+try:
+    import linuxcnc
+except ImportError:
+    import mock_linuxcnc as linuxcnc
 
 app = Flask(__name__)
 
@@ -13,8 +17,7 @@ c = linuxcnc.command()
 
 def ok_for_mdi():
     s.poll()
-    return not s.estop and s.enabled and s.homed \
-           and (s.interp_state == linuxcnc.INTERP_IDLE)
+    return not s.estop and s.enabled and s.homed and (s.interp_state == linuxcnc.INTERP_IDLE)
 
 
 # Info Linux CNC:
@@ -39,7 +42,7 @@ def get_axis_positions():
 @app.route("/status")
 def get_status():
     s.poll()
-    props = inspect.getmembers(s, lambda a:not(inspect.isroutine(a)))
+    props = inspect.getmembers(s, lambda a: not (inspect.isroutine(a)))
     props_dict = {}
     for p in props:
         key, val = p[0], p[1]
@@ -56,7 +59,7 @@ def get_status():
 def jog():
     if not ok_for_mdi():
         return jsonify({'status': 'busy'})
-    
+
     data = request.get_json()
     print(data)
     axis = data.get('axis')
