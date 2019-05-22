@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+
 INTERP_IDLE = 'mock_interp_state'
 
 STATE_ESTOP = 'mock_state_estop'
