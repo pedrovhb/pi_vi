@@ -3,6 +3,7 @@
 from flask import Flask, Response, jsonify, request
 import json
 import inspect
+from threading import Timer
 
 try:
     import linuxcnc
@@ -10,9 +11,6 @@ except ImportError:
     import mock_linuxcnc as linuxcnc
 
 app = Flask(__name__)
-
-s = linuxcnc.stat()
-c = linuxcnc.command()
 
 
 def ok_for_mdi():
@@ -123,6 +121,12 @@ def state_off():
 
 
 #########################################################
+# Gerenciamento interno
+
+@app.route("/abb_status", methods=["GET"])
+def get_abb_status():
+    return jsonify(abb_status)
+
 
 @app.after_request
 def after_request(response):
@@ -131,5 +135,18 @@ def after_request(response):
     return response
 
 
+def abb_thread(c, s, abb_status):
+    print('hi!')
+    abb_status['a'] += 'a'
+    t = Timer(1, function=abb_thread, args=[c, s, abb_status])
+    t.start()
+
+
+abb_status = {'b': 'c'}
 if __name__ == '__main__':
+    s = linuxcnc.stat()
+    c = linuxcnc.command()
+
+    t = Timer(1, function=abb_thread, args=[c, s, abb_status])
+    t.start()
     app.run('0.0.0.0')
