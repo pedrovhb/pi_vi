@@ -135,18 +135,8 @@ def after_request(response):
     return response
 
 
-def abb_thread(c, s, abb_status):
-    print('hi!')
-    abb_status['a'] += 'a'
-    t = Timer(1, function=abb_thread, args=[c, s, abb_status])
-    t.start()
-
-
 abb_status = {'b': 'c'}
 if __name__ == '__main__':
     s = linuxcnc.stat()
     c = linuxcnc.command()
-
-    t = Timer(1, function=abb_thread, args=[c, s, abb_status])
-    t.start()
     app.run('0.0.0.0')
