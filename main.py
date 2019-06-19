@@ -134,8 +134,6 @@ def after_request(response):
     response.headers['Access-Control-Allow-Headers'] = '*'
     return response
 
-
-abb_status = {'b': 'c'}
 if __name__ == '__main__':
     s = linuxcnc.stat()
     c = linuxcnc.command()

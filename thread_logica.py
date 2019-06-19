@@ -31,13 +31,14 @@ class LogicaPI(object):
         # net INICIO_CICLO_ABB <= motion.digital-out-10
         self.do_inicio_ciclo_abb = 10
 
+        # hm2_5i25.0.7i77.0.0.output-04
+        # net VERIFICACAO_OK <= motion.digital-out-11
+        self.do_verificacao_ok = 13
+
         # hm2_5i25.0.7i77.0.0.output-03
         # net SAIDA_FLEX <= motion.digital-out-12
-        self.do_saida_flex = 12
-        
-        # hm2_5i25.0.7i77.0.0.output-02
-        # net VERIFICACAO_OK <= motion.digital-out-11
-        self.do_verificacao_ok = 11
+        self.do_saida_flex = 11
+
 
 
 
