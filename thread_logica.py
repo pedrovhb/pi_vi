@@ -1,6 +1,7 @@
 # coding=utf-8
 import logging
 import time
+import os
 
 try:
     import linuxcnc
@@ -31,26 +32,19 @@ class LogicaPI(object):
         # net INICIO_CICLO_ABB <= motion.digital-out-10
         self.do_inicio_ciclo_abb = 10
 
-        # hm2_5i25.0.7i77.0.0.output-04
+        # hm2_5i25.0.7i77.0.0.output-01
         # net VERIFICACAO_OK <= motion.digital-out-11
-        self.do_verificacao_ok = 13
+        self.do_verificacao_ok = 11
 
         # hm2_5i25.0.7i77.0.0.output-03
         # net SAIDA_FLEX <= motion.digital-out-12
-        self.do_saida_flex = 11
-
-
-
+        self.do_saida_flex = 12
 
         self.inicio_ciclo_abb = False
         self.triac_posicao_ok = False
 
-        # self.saida_flex = 0
-        # self.verificacao_ok = False
+        self.triac_posicao = (-150, -100, 0)
 
-        # self.digital_abb = 0b00
-
-        # todo - atualizar DO
 
         # self.triac_ir_home()
         # self.triac_ir_posicao()
@@ -130,6 +124,7 @@ class LogicaPI(object):
         """
 
         log.info('Fazendo home de todos os eixos.')
+        self.triac_posicao_ok = False
         c.mode(linuxcnc.MODE_MANUAL)
         for i in range(3):
             c.home(i)
@@ -158,14 +153,22 @@ class LogicaPI(object):
 
         
 
-    def executar_programa(self, nome_arquivo):
-        c.program_open("foo.ngc")
-        # todo
+    def executar_programa(self):
+        c.mode(linuxcnc.MODE_AUTO)
+        # c.program_open("PROGRAMA_CNC.ngc")
+        c.program_open(os.path.join(os.getcwd(), 'PROGRAMA_CNC.ngc'))
+        c.auto(linuxcnc.AUTO_RUN, 0)
+        self.aguarda_mdi_ok('executar_programa')
+        c.mode(linuxcnc.MODE_MDI)
 
 
     def triac_ir_posicao(self):
-        # Todo - mdi
-        pass
+        x, y, z = self.triac_posicao
+        self.aguarda_mdi_ok('triac_ir_posicao (1)')
+        c.mode(linuxcnc.MODE_MDI)
+        c.mdi('G00 X' + str(x) + ' Y' + str(y) + ' Z' + str(z))
+        self.aguarda_mdi_ok('triac_ir_posicao (2)')
+        self.triac_posicao_ok = True
 
     # Comando do operador
     def celula_iniciar_ciclo_individual(self):
@@ -201,14 +204,14 @@ class LogicaPI(object):
     # Comando do ABB
     def triac_iniciar_operacao(self):
         self.triac_posicao_ok = False
-        # todo - atualizar DO
-        # todo - MDI triac operação
+        self.executar_programa()
+        self.triac_ir_posicao()
         # todo - verificar fluxograma (triac posição OK?)
 
     # Comando do ABB
     def verificar_tem_peca_triac(self):
         # todo - alg. visão
-        tem_peca = input('Tem peça triac? (s/n)')
+        tem_peca = raw_input('Tem peça triac? (s/n)')
         tem_peca = tem_peca.strip().lower() in ['s', 'y', '1']
         if tem_peca:
             self.saida_flex = 1
@@ -222,7 +225,7 @@ class LogicaPI(object):
     # Comando do ABB
     def verificar_peca_boa(self):
         # todo - alg. visão
-        peca_boa = input('Peça boa? (s/n)')
+        peca_boa = raw_input('Peça boa? (s/n)')
         peca_boa = peca_boa.strip().lower() in ['s', 'y', '1']
         if peca_boa:
             self.saida_flex = 1
@@ -233,8 +236,50 @@ class LogicaPI(object):
         time.sleep(0.1)
         self.verificacao_ok = False
 
+    def print_info(self):
+        print('DO - inicio_ciclo_abb: %s' % self.inicio_ciclo_abb)
+        print('DO - saida_flex: %s' % self.saida_flex)
+        print('DO - verificacao_ok: %s' % self.verificacao_ok)
+        print('triac_posicao_ok: %s' % self.triac_posicao_ok)
+
 
 if __name__ == '__main__':
     lpi = LogicaPI()
     lpi.triac_ir_home()
-    print(lpi.home_ok)
+    lpi.triac_ir_posicao()
+    
+    while True:
+        print("""
+        ====================================================
+        INPUT MANUAL DE TESTES
+        Comandos:
+        1 - (operador) Início Ciclo ABB
+        2 - (operador) Início Ciclo ABB Contínuo
+        3 - (operador) Fim Ciclo ABB Contínuo
+        4 - (ABB) Comanda Operação TRIAC
+        5 - (ABB) Comanda Verificação de Peça TRIAC
+        6 - (ABB) Comanda Verificação de Peça Boa
+        7 - Print Info
+        8 - Executar
+        """)
+
+        cmd = raw_input('Comando: ').strip()
+
+        if cmd == '1':
+            lpi.celula_iniciar_ciclo_individual()
+        elif cmd == '2':
+            lpi.celula_iniciar_ciclo_continuo()
+        elif cmd == '3':
+            lpi.celula_parar_ciclo_continuo()
+        elif cmd == '4':
+            lpi.triac_iniciar_operacao()
+        elif cmd == '5':
+            lpi.verificar_tem_peca_triac()
+        elif cmd == '6':
+            lpi.verificar_peca_boa()
+        elif cmd == '7':
+            lpi.print_info()
+        elif cmd == '8':
+            eval(raw_input('Executar:\n'))
+        else:
+            print('Comando inválido')
