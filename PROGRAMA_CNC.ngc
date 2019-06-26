@@ -1,0 +1,28 @@
+N10 G80 G17 G40 G21 G90
+N20 G94 G54 G49
+N30 G01 F800 
+N40 G01 X-150 Y-100	 (Ponto padrão de pegar e devolver a peça)
+N50 G91	 (Habilita o uso de coordenadas incrementais)
+N60 G01 X0 Y38 	(Vai para o ponto do Furo1)
+N70 S800 M03 	(Liga o eixo árvore)
+N80 Z-80 	(Faz a furação)
+N90 Z80
+N100 M05 	(Desliga o eixo árvore)
+N110 G01 X-20 Y0 	(Vai para o ponto do Furo2)
+N120 M03	 (Liga o eixo árvore)
+N130 Z-80 	(Faz a furação)
+N140 Z80
+N150 M05 	(Desliga o eixo árvore)
+N160 G01 X0 Y-20	 (Vai para o ponto do Furo3)
+N170 M03 	(Liga o eixo árvore)
+N180 Z-80 	(Faz a furação)
+N190 Z80
+N200 M05 	(Desliga o eixo árvore)
+N210 G01 X20 Y0 	(Vai para o ponto do Furo4)
+N220 M03	 (Liga o eixo árvore)
+N230 Z-80 	(Faz a furação)
+N240 Z80
+N250 G90 	(Habilita o uso de coordenadas absolutas)
+N260 M05 	(Desliga o eixo árvore)
+N270 G01 X-150 Y-100  (Retorna para o ponto padrão de pegar e devolver a peça)
+N500 M30
