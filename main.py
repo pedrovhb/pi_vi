@@ -3,7 +3,8 @@
 from flask import Flask, Response, jsonify, request
 import json
 import inspect
-from threading import Timer
+from multiprocessing import Process, Pipe
+import thread_logica
 
 try:
     import linuxcnc
@@ -13,9 +14,9 @@ except ImportError:
 app = Flask(__name__)
 
 
-def ok_for_mdi():
-    s.poll()
-    return not s.estop and s.enabled and s.homed and (s.interp_state == linuxcnc.INTERP_IDLE)
+# def ok_for_mdi():
+#     s.poll()
+#     return not s.estop and s.enabled and s.homed and (s.interp_state == linuxcnc.INTERP_IDLE)
 
 
 # Info Linux CNC:
@@ -37,8 +38,8 @@ def get_axis_positions():
     return jsonify(axes_positions)
 
 
-@app.route("/status")
-def get_status():
+@app.route("/status_linuxcnc")
+def get_status_linuxcnc():
     s.poll()
     props = inspect.getmembers(s, lambda a: not (inspect.isroutine(a)))
     props_dict = {}
@@ -48,46 +49,68 @@ def get_status():
     props_dict = json.dumps(props_dict, default=lambda x: repr(x))
     return Response(props_dict, 200, mimetype='application/json')
 
+@app.route("/status")
+def get_status():
+    parent_conn.send({'comando': 'info'})
+    info = parent_conn.recv()
+    d = json.dumps(info, default=lambda x: repr(x))
+    return Response(d, 200, mimetype='application/json')
+
+
+@app.route("/comando", methods=["POST"])
+def comando():
+    dados = request.get_json()
+    comandos_validos = ['abrir_morsa', 'fechar_morsa',
+                        'iniciar_ciclo_continuo', 'parar_ciclo_continuo',
+                        'iniciar_ciclo_individual']
+    
+    if dados.get('comando') in comandos_validos:
+        parent_conn.send({'comando': dados['comando']})
+        return jsonify({'status': 'ok'})
+    else:
+        return jsonify({'status': 'Formato inválido ou comando desconhecido.'})
+
+
 
 #########################################################
 # Movimentação
 
 
-@app.route("/jog", methods=['POST'])
-def jog():
-    if not ok_for_mdi():
-        return jsonify({'status': 'busy'})
+# @app.route("/jog", methods=['POST'])
+# def jog():
+#     if not ok_for_mdi():
+#         return jsonify({'status': 'busy'})
 
-    data = request.get_json()
-    print(data)
-    axis = data.get('axis')
-    speed = data.get('speed')
-    increment = data.get('increment')
-    c.jog(linuxcnc.JOG_INCREMENT, axis, speed, increment)
-    return jsonify({'status': 'ok'})
-
-
-@app.route("/mdi", methods=['POST'])
-def mdi():
-    if not ok_for_mdi():
-        return jsonify({'status': 'busy'})
-    print(request.headers)
-    data = request.get_json()
-    print(data)
-    mdi_command = data.get('mdi')
-    c.mode(linuxcnc.MODE_MDI)
-    c.mdi(mdi_command)
-    return jsonify({'status': 'ok'})
+#     data = request.get_json()
+#     print(data)
+#     axis = data.get('axis')
+#     speed = data.get('speed')
+#     increment = data.get('increment')
+#     c.jog(linuxcnc.JOG_INCREMENT, axis, speed, increment)
+#     return jsonify({'status': 'ok'})
 
 
-@app.route("/home", methods=['POST'])
-def home():
-    if ok_for_mdi():
-        c.home(0)
-        c.home(1)
-        c.home(2)
-        return jsonify({'status': 'ok'})
-    return jsonify({'status': 'busy'})
+# @app.route("/mdi", methods=['POST'])
+# def mdi():
+#     if not ok_for_mdi():
+#         return jsonify({'status': 'busy'})
+#     print(request.headers)
+#     data = request.get_json()
+#     print(data)
+#     mdi_command = data.get('mdi')
+#     c.mode(linuxcnc.MODE_MDI)
+#     c.mdi(mdi_command)
+#     return jsonify({'status': 'ok'})
+
+
+# @app.route("/home", methods=['POST'])
+# def home():
+#     if ok_for_mdi():
+#         c.home(0)
+#         c.home(1)
+#         c.home(2)
+#         return jsonify({'status': 'ok'})
+#     return jsonify({'status': 'busy'})
 
 
 #########################################################
@@ -108,16 +131,16 @@ def state_estop_reset():
 #########################################################
 # On/Off
 
-@app.route("/state_on", methods=["POST", "GET"])
-def state_on():
-    c.state(linuxcnc.STATE_ON)
-    return jsonify({'status': 'ok'})
+# @app.route("/state_on", methods=["POST", "GET"])
+# def state_on():
+#     c.state(linuxcnc.STATE_ON)
+#     return jsonify({'status': 'ok'})
 
 
-@app.route("/state_off", methods=["POST"])
-def state_off():
-    c.state(linuxcnc.STATE_OFF)
-    return jsonify({'status': 'ok'})
+# @app.route("/state_off", methods=["POST"])
+# def state_off():
+#     c.state(linuxcnc.STATE_OFF)
+#     return jsonify({'status': 'ok'})
 
 
 #########################################################
@@ -137,4 +160,11 @@ def after_request(response):
 if __name__ == '__main__':
     s = linuxcnc.stat()
     c = linuxcnc.command()
-    app.run('0.0.0.0')
+
+    parent_conn, child_conn = Pipe()
+    p = Process(target=thread_logica.rodar_logica_pi, args=(child_conn,))
+    p.daemon = True
+    p.start()
+    app.run('0.0.0.0', port=80)
+    # app.run('127.0.0.1')
+
