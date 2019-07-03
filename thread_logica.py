@@ -15,6 +15,7 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 s = linuxcnc.stat()
 c = linuxcnc.command()
 
+
 class LogicaPI(object):
 
     def __init__(self):
@@ -55,7 +56,7 @@ class LogicaPI(object):
     def ok_for_mdi(self):
         s.poll()
         return not s.estop and s.enabled and s.homed \
-        and (s.interp_state == linuxcnc.INTERP_IDLE)
+               and (s.interp_state == linuxcnc.INTERP_IDLE)
 
     def aguarda_mdi_ok(self, nome_funcao):
         """Aguarda o ok_for_mdi; máquina ligada e emergência desabilitada."""
@@ -99,19 +100,19 @@ class LogicaPI(object):
     def verificacao_ok(self):
         s.poll()
         return s.dout[self.do_verificacao_ok]
-    
+
     @verificacao_ok.setter
     def verificacao_ok(self, val):
         assert val in (0, 1, True, False)
         log.info('Setando verificacao_ok para ' + str(val))
         c.mode(linuxcnc.MODE_MANUAL)
         c.set_digital_output(self.do_verificacao_ok, val)
-    
+
     @property
     def saida_flex(self):
         s.poll()
         return s.dout[self.do_saida_flex]
-    
+
     @saida_flex.setter
     def saida_flex(self, val):
         assert val in (0, 1, True, False)
@@ -123,7 +124,6 @@ class LogicaPI(object):
     def home_ok(self):
         s.poll()
         return all(s.homed[:3])
-
 
     ######################################################
     # Operações individuais
@@ -143,7 +143,6 @@ class LogicaPI(object):
         while not self.home_ok:
             time.sleep(0.1)
         return self.home_ok
-            
 
     def abrir_morsa(self, aguardar_mdi_ok=True):
         if aguardar_mdi_ok:
@@ -153,7 +152,6 @@ class LogicaPI(object):
         time.sleep(3)
         c.set_digital_output(self.do_morsa_abre, 0)
 
-    
     def fechar_morsa(self, aguardar_mdi_ok=True):
         if aguardar_mdi_ok:
             self.aguarda_mdi_ok('fechar_morsa')
@@ -163,8 +161,6 @@ class LogicaPI(object):
         time.sleep(4)
         c.set_digital_output(self.do_morsa_fecha, 0)
 
-        
-
     def executar_programa(self):
         c.mode(linuxcnc.MODE_AUTO)
         # c.program_open("PROGRAMA_CNC.ngc")
@@ -172,7 +168,6 @@ class LogicaPI(object):
         c.auto(linuxcnc.AUTO_RUN, 0)
         self.aguarda_mdi_ok('executar_programa')
         c.mode(linuxcnc.MODE_MDI)
-
 
     def triac_ir_posicao(self):
         x, y, z = self.triac_posicao
@@ -272,6 +267,7 @@ class LogicaPI(object):
         print('DO - triac_posicao_ok: %s' % self.triac_posicao_ok)
         print('DI - digital_abb: %s' % self.digital_abb)
 
+
 def debug_abb(lpi):
     while True:
         print("""
@@ -367,16 +363,12 @@ def rodar_logica_pi(conn):
         time.sleep(0.1)
 
 
-
 if __name__ == '__main__':
     # /inicio
 
-
-    
     debug = True
     if debug:
         lpi = LogicaPI()
         debug_abb(lpi)
     else:
         rodar_logica_pi(None)
-    

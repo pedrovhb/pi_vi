@@ -9,6 +9,9 @@ STATE_OFF = 'mock_state_off'
 
 JOG_INCREMENT = 1
 MODE_MDI = 'mock_mode_mdi'
+MODE_MANUAL = 'mock_mode_manual'
+MODE_AUTO = 'mock_mode_auto'
+AUTO_RUN = 'mock_auto_run'
 
 
 class MockStat:
